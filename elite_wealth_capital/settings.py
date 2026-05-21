@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 # Load environment variables
 load_dotenv()
@@ -18,6 +20,17 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 if not SECRET_KEY:
     raise ValueError("SECRET_KEY environment variable must be set")
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+
+# Sentry Error Tracking (only in production)
+if not DEBUG and os.getenv('SENTRY_DSN'):
+    sentry_sdk.init(
+        dsn=os.getenv('SENTRY_DSN'),
+        integrations=[DjangoIntegration()],
+        traces_sample_rate=0.1,  # 10% of transactions for performance monitoring
+        send_default_pii=False,  # Don't send personally identifiable information
+        environment='production',
+        release=os.getenv('RENDER_GIT_COMMIT', 'unknown'),
+    )
 
 ALLOWED_HOSTS = os.getenv(
     'ALLOWED_HOSTS',

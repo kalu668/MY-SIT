@@ -42,3 +42,6 @@ bleach>=6.1
 
 # PDF Generation (for receipts)
 reportlab>=4.0
+
+# Error Tracking
+sentry-sdk>=2.0
