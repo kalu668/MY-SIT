@@ -25,10 +25,36 @@ def generate_verification_token(deposit_id, action):
     ).hexdigest()
 
 
-def verify_token(deposit_id, action, token):
-    """Verify the security token"""
-    expected_token = generate_verification_token(deposit_id, action)
-    return hmac.compare_digest(token, expected_token)
+import time
+
+def verify_token(deposit_id, action, token_with_timestamp):
+    """
+    Verify the security token with timestamp and expiration (24 hours)
+    Expected format: <timestamp>.<hash>
+    """
+    try:
+        if '.' not in token_with_timestamp:
+            return False
+            
+        timestamp_str, token = token_with_timestamp.split('.', 1)
+        timestamp = int(timestamp_str)
+        
+        # Check expiration (24 hours = 86400 seconds)
+        current_time = int(time.time())
+        if current_time - timestamp > 86400:
+            return False
+            
+        # Verify hash
+        message = f"{deposit_id}:{action}:{timestamp}:{settings.SECRET_KEY}"
+        expected_token = hmac.new(
+            settings.SECRET_KEY.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        return hmac.compare_digest(token, expected_token)
+    except (ValueError, TypeError):
+        return False
 
 
 @csrf_exempt
@@ -98,18 +124,7 @@ def verify_deposit_from_email(request, deposit_id, token):
         deposit.status = 'confirmed'
         deposit.save()
         
-        # Update user balance
-        user = deposit.user
-        user.balance += deposit.amount
-        user.save()
-        
-        # Create notification for user
-        Notification.objects.create(
-            user=user,
-            title='Deposit Confirmed',
-            message=f'Your deposit of ${deposit.amount:,.2f} has been confirmed and added to your balance.',
-            notification_type='deposit'
-        )
+        # User balance and notification are handled by post_save signal in signals.py
         
         # Return success page
         return HttpResponse(
@@ -133,11 +148,11 @@ def verify_deposit_from_email(request, deposit_id, token):
                     <div class="success">✅</div>
                     <h2>Deposit Verified Successfully!</h2>
                     <div class="details">
-                        <p><strong>User:</strong> {user.full_name}</p>
-                        <p><strong>Email:</strong> {user.email}</p>
+                        <p><strong>User:</strong> {deposit.user.full_name}</p>
+                        <p><strong>Email:</strong> {deposit.user.email}</p>
                         <p class="amount">💰 ${deposit.amount:,.2f}</p>
                         <p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
-                            <strong>New Balance:</strong> ${user.balance:,.2f}
+                            <strong>New Balance:</strong> ${deposit.user.balance:,.2f}
                         </p>
                     </div>
                     <p style="color: #7f8c8d; font-size: 14px;">User has been notified via email ✉️</p>

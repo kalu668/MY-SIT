@@ -9,7 +9,7 @@ from .models import (InvestmentPlan, Investment, Deposit, Withdrawal, WalletAddr
 from decimal import Decimal, InvalidOperation
 from django.http import JsonResponse
 from django_ratelimit.decorators import ratelimit
-from accounts.email_notifications import send_deposit_notification
+from accounts.email_notifications import send_deposit_notification, send_withdrawal_notification
 import urllib.request
 import json
 import logging
@@ -399,6 +399,12 @@ def withdraw_view(request):
             wallet_address=wallet_address,
             status='pending'
         )
+        
+        # Send admin notification email
+        try:
+            send_withdrawal_notification(withdrawal)
+        except Exception as e:
+            logger.error(f"Failed to send withdrawal notification: {str(e)}")
         
         messages.success(request, 'Withdrawal request submitted.')
         return redirect('dashboard:dashboard')

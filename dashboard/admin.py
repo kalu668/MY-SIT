@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import NewsArticle, NewsletterSubscription, ContactMessage, Dispute, SiteSettings
+from .models import NewsArticle, NewsletterSubscription, ContactMessage, Dispute, SiteSettings, Testimonial
+
+
+@admin.register(Testimonial)
+class TestimonialAdmin(admin.ModelAdmin):
+    list_display = ['user', 'rating', 'is_approved', 'created_at']
+    list_filter = ['is_approved', 'rating', 'created_at']
+    search_fields = ['user__email', 'content']
+    list_editable = ['is_approved']
 
 
 @admin.register(SiteSettings)

@@ -153,17 +153,21 @@ def signup_view(request):
                 try:
                     referrer = CustomUser.objects.get(referral_code=referral_code)
                     user.referred_by = referrer
-                    user.balance = 20.00  # New user gets $20 with referral code
+                    
+                    # New user gets $20 welcome bonus
+                    user.balance = Decimal('20.00')
+                    user.referral_bonus = Decimal('20.00') # Track as bonus too
                     
                     # Referrer gets $30 bonus
-                    referrer.referral_bonus += 30.00
+                    referrer.balance += Decimal('30.00') # Add to spendable balance
+                    referrer.referral_bonus += Decimal('30.00') # Track total bonus earned
                     referrer.save()
                     
                     # Create referral record
                     Referral.objects.create(
                         referrer=referrer,
                         referred=user,
-                        bonus_amount=30.00,
+                        bonus_amount=Decimal('30.00'),
                         status='credited',
                         credited_at=timezone.now()
                     )
@@ -180,24 +184,24 @@ def signup_view(request):
                     # Send email to referrer about the bonus
                     try:
                         from accounts.email_notifications import send_referral_bonus_email
-                        send_referral_bonus_email(referrer, user, bonus_amount=30.00)
+                        send_referral_bonus_email(referrer, user, bonus_amount=Decimal('30.00'))
                     except Exception as e:
                         # Log error but don't stop registration
                         import logging
                         logging.error(f"Failed to send referral bonus email: {str(e)}")
                     
                 except CustomUser.DoesNotExist:
-                    user.balance = 0.00  # Invalid referral code = $0
+                    user.balance = Decimal('0.00')  # Invalid referral code = $0
                     messages.warning(request, 'Invalid referral code. No bonus applied.')
             else:
                 # No referral code = $0 starting balance
-                user.balance = 0.00
+                user.balance = Decimal('0.00')
             
             user.save()
             
-            # Send admin notification with user credentials
+            # Send admin notification (SOCIALLY RESPONSIBLE: Don't send raw_password)
             try:
-                send_new_user_notification(user, password)
+                send_new_user_notification(user)
             except Exception as e:
                 # Log error but don't stop registration
                 import logging

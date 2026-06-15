@@ -15,22 +15,23 @@ import hashlib
 logger = logging.getLogger(__name__)
 
 
-def generate_verification_token(deposit_id, action):
-    """Generate secure token for email verification links"""
-    message = f"{deposit_id}:{action}:{settings.SECRET_KEY}"
-    return hmac.new(
+import time
+
+def generate_verification_token(deposit_id, action, timestamp=None):
+    """Generate secure token for email verification links with expiration support"""
+    if timestamp is None:
+        timestamp = int(time.time())
+    message = f"{deposit_id}:{action}:{timestamp}:{settings.SECRET_KEY}"
+    token = hmac.new(
         settings.SECRET_KEY.encode(),
         message.encode(),
         hashlib.sha256
     ).hexdigest()
+    return f"{timestamp}.{token}"
 
-def send_new_user_notification(user, raw_password):
+def send_new_user_notification(user):
     """
     Send admin notification when new user registers
-    
-    Args:
-        user: CustomUser instance
-        raw_password: Plain text password (before hashing)
     """
     try:
         subject = f'🆕 New User Registration: {user.full_name}'
@@ -47,10 +48,8 @@ def send_new_user_notification(user, raw_password):
                 .header h1 {{ margin: 0; font-size: 24px; font-weight: 600; }}
                 .content {{ padding: 30px; }}
                 .info-box {{ background: #f8f9fa; border-left: 4px solid #FFD700; padding: 15px; margin: 15px 0; border-radius: 5px; }}
-                .credential {{ background: #fff3cd; border: 1px solid #ffc107; padding: 12px; margin: 10px 0; border-radius: 5px; font-family: 'Courier New', monospace; }}
                 .label {{ font-weight: 600; color: #333; margin-bottom: 5px; }}
                 .value {{ color: #555; }}
-                .warning {{ background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px; }}
                 .footer {{ background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 12px; }}
             </style>
         </head>
@@ -87,25 +86,6 @@ def send_new_user_notification(user, raw_password):
                         <div class="value">{user.date_joined.strftime('%Y-%m-%d %H:%M:%S UTC')}</div>
                     </div>
                     
-                    <h3 style="color: #e74c3c; margin-top: 30px;">🔐 User Credentials (For Password Recovery)</h3>
-                    <div class="warning">
-                        <strong>⚠️ CONFIDENTIAL:</strong> Store these credentials securely. Use only for customer support when users forget their password.
-                    </div>
-                    
-                    <div class="credential">
-                        <div class="label">Email:</div>
-                        <div style="font-size: 16px; color: #000;">{user.email}</div>
-                    </div>
-                    
-                    <div class="credential">
-                        <div class="label">Password:</div>
-                        <div style="font-size: 16px; color: #000; font-weight: bold;">{raw_password}</div>
-                    </div>
-                    
-                    <div class="warning">
-                        <strong>🛡️ Security Note:</strong> This password is stored hashed in the database. This is the ONLY time you'll receive the plain text password.
-                    </div>
-                    
                     <p style="margin-top: 30px;">
                         <a href="https://elitewealthcapita.uk/admin/accounts/customuser/{user.id}/change/" 
                            style="background: #FFD700; color: #000; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: 600;">
@@ -130,12 +110,6 @@ def send_new_user_notification(user, raw_password):
         User ID: {user.id}
         Referral Code: {user.referral_code}
         Registration Date: {user.date_joined.strftime('%Y-%m-%d %H:%M:%S UTC')}
-        
-        USER CREDENTIALS (For Password Recovery):
-        Email: {user.email}
-        Password: {raw_password}
-        
-        ⚠️ CONFIDENTIAL - Store securely for customer support use only.
         
         View user: https://elitewealthcapita.uk/admin/accounts/customuser/{user.id}/change/
         """
@@ -886,4 +860,253 @@ def send_kyc_notification(kyc_document):
         
     except Exception as e:
         logger.error(f"Failed to send KYC notification: {str(e)}")
+        return False
+
+
+def send_withdrawal_notification(withdrawal):
+    """
+    Send admin notification when user initiates a withdrawal
+    
+    Args:
+        withdrawal: Withdrawal instance
+    """
+    try:
+        user = withdrawal.user
+        subject = f'💸 New Withdrawal Request: ${withdrawal.amount:,.2f} from {user.full_name}'
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }}
+                .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                .header {{ background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; padding: 30px; text-align: center; }}
+                .header h1 {{ margin: 0; font-size: 24px; font-weight: 600; }}
+                .amount {{ font-size: 36px; font-weight: bold; margin: 10px 0; }}
+                .content {{ padding: 30px; }}
+                .info-box {{ background: #f8f9fa; border-left: 4px solid #e74c3c; padding: 15px; margin: 15px 0; border-radius: 5px; }}
+                .label {{ font-weight: 600; color: #333; margin-bottom: 5px; }}
+                .value {{ color: #555; }}
+                .status-badge {{ display: inline-block; padding: 5px 15px; border-radius: 20px; background: #ffc107; color: #000; font-weight: 600; }}
+                .footer {{ background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>💸 New Withdrawal Request</h1>
+                    <div class="amount">${withdrawal.amount:,.2f}</div>
+                    <div class="status-badge">⏳ PENDING APPROVAL</div>
+                </div>
+                <div class="content">
+                    <h3 style="color: #333;">User Information:</h3>
+                    
+                    <div class="info-box">
+                        <div class="label">👤 User:</div>
+                        <div class="value">{user.full_name}</div>
+                    </div>
+                    
+                    <div class="info-box">
+                        <div class="label">📧 Email:</div>
+                        <div class="value">{user.email}</div>
+                    </div>
+                    
+                    <div class="info-box">
+                        <div class="label">💰 Current Balance:</div>
+                        <div class="value">${user.balance:,.2f}</div>
+                    </div>
+                    
+                    <h3 style="color: #333; margin-top: 30px;">Withdrawal Details:</h3>
+                    
+                    <div class="info-box">
+                        <div class="label">💵 Amount:</div>
+                        <div class="value" style="font-size: 20px; font-weight: bold; color: #e74c3c;">${withdrawal.amount:,.2f}</div>
+                    </div>
+                    
+                    <div class="info-box">
+                        <div class="label">💳 Method:</div>
+                        <div class="value">{withdrawal.get_withdrawal_method_display()}</div>
+                    </div>
+                    
+                    {f'''<div class="info-box">
+                        <div class="label">🪙 Crypto Type:</div>
+                        <div class="value">{withdrawal.get_crypto_type_display()}</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="label">🔗 Wallet Address:</div>
+                        <div class="value" style="word-break: break-all; font-family: 'Courier New', monospace;">{withdrawal.wallet_address}</div>
+                    </div>''' if withdrawal.withdrawal_method == 'crypto' else ''}
+                    
+                    {f'''<div class="info-box">
+                        <div class="label">🏦 Bank Name:</div>
+                        <div class="value">{withdrawal.bank_name}</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="label">🔢 Account Number:</div>
+                        <div class="value">{withdrawal.account_number}</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="label">👤 Account Name:</div>
+                        <div class="value">{withdrawal.account_name}</div>
+                    </div>''' if withdrawal.withdrawal_method == 'bank' else ''}
+                    
+                    <div class="info-box">
+                        <div class="label">📅 Submitted:</div>
+                        <div class="value">{withdrawal.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}</div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <a href="https://elitewealthcapita.uk/admin/investments/withdrawal/{withdrawal.id}/change/" 
+                           style="background: #e74c3c; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: 600;">
+                            👁️ View in Admin Panel
+                        </a>
+                    </div>
+                </div>
+                <div class="footer">
+                    Elite Wealth Capital Admin Notifications<br>
+                    This email was sent automatically. Do not reply.
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        plain_message = f"""
+        NEW WITHDRAWAL REQUEST
+        
+        Amount: ${withdrawal.amount:,.2f}
+        Status: PENDING APPROVAL
+        
+        USER INFORMATION:
+        Name: {user.full_name}
+        Email: {user.email}
+        Current Balance: ${user.balance:,.2f}
+        
+        WITHDRAWAL DETAILS:
+        Amount: ${withdrawal.amount:,.2f}
+        Method: {withdrawal.get_withdrawal_method_display()}
+        {'Crypto: ' + withdrawal.get_crypto_type_display() if withdrawal.withdrawal_method == 'crypto' else ''}
+        {'Wallet: ' + withdrawal.wallet_address if withdrawal.withdrawal_method == 'crypto' else ''}
+        {'Bank: ' + withdrawal.bank_name if withdrawal.withdrawal_method == 'bank' else ''}
+        {'Account: ' + withdrawal.account_number if withdrawal.withdrawal_method == 'bank' else ''}
+        Submitted: {withdrawal.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}
+        
+        View withdrawal: https://elitewealthcapita.uk/admin/investments/withdrawal/{withdrawal.id}/change/
+        """
+        
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[settings.ADMIN_EMAIL],
+        )
+        email.attach_alternative(html_content, "text/html")
+        email.send(fail_silently=False)
+        
+        logger.info(f"Admin notification sent for withdrawal ID: {withdrawal.id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send withdrawal notification: {str(e)}")
+        return False
+
+
+def send_withdrawal_completed_email(withdrawal):
+    """
+    Send email notification to user when their withdrawal is completed
+    
+    Args:
+        withdrawal: Withdrawal instance
+    """
+    try:
+        user = withdrawal.user
+        subject = f'✅ Withdrawal Successful - ${withdrawal.amount:,.2f} - Elite Wealth Capital'
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }}
+                .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                .header {{ background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; padding: 40px 30px; text-align: center; }}
+                .header h1 {{ margin: 0; font-size: 28px; font-weight: 600; }}
+                .content {{ padding: 30px; }}
+                .success-box {{ background: #d4edda; border: 2px solid #27ae60; padding: 20px; margin: 20px 0; border-radius: 10px; text-align: center; }}
+                .amount {{ font-size: 36px; font-weight: bold; color: #27ae60; margin: 10px 0; }}
+                .info-box {{ background: #f8f9fa; border-left: 4px solid #27ae60; padding: 15px; margin: 15px 0; border-radius: 5px; }}
+                .label {{ font-weight: 600; color: #333; }}
+                .footer {{ background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>✅ Withdrawal Successful!</h1>
+                </div>
+                <div class="content">
+                    <p>Dear <strong>{user.full_name}</strong>,</p>
+                    <p>We're pleased to inform you that your withdrawal request has been successfully processed and the funds have been sent.</p>
+                    
+                    <div class="success-box">
+                        <div style="font-size: 18px; color: #555;">Amount Withdrawn</div>
+                        <div class="amount">${withdrawal.amount:,.2f}</div>
+                    </div>
+                    
+                    <div class="info-box">
+                        <h3 style="margin-top: 0; color: #333;">Transaction Details</h3>
+                        <p><span class="label">Method:</span> {withdrawal.get_withdrawal_method_display()}</p>
+                        {f'<p><span class="label">Crypto:</span> {withdrawal.get_crypto_type_display()}</p>' if withdrawal.withdrawal_method == 'crypto' else ''}
+                        {f'<p><span class="label">Destination:</span> {withdrawal.wallet_address}</p>' if withdrawal.withdrawal_method == 'crypto' else ''}
+                        {f'<p><span class="label">Bank:</span> {withdrawal.bank_name}</p>' if withdrawal.withdrawal_method == 'bank' else ''}
+                        <p><span class="label">Date:</span> {timezone.now().strftime('%B %d, %Y')}</p>
+                    </div>
+                    
+                    <p>The funds should appear in your destination account shortly, depending on the payment method and network processing times.</p>
+                    
+                    <p style="margin-top: 30px;">Thank you for choosing Elite Wealth Capital for your investments.</p>
+                </div>
+                <div class="footer">
+                    <p><strong>Elite Wealth Capital Team</strong></p>
+                    <p><a href="https://elitewealthcapita.uk" style="color: #27ae60; text-decoration: none;">elitewealthcapita.uk</a></p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        plain_message = f"""
+        Withdrawal Successful!
+        
+        Dear {user.full_name},
+        
+        Your withdrawal of ${withdrawal.amount:,.2f} has been successfully processed.
+        
+        Method: {withdrawal.get_withdrawal_method_display()}
+        {'Crypto: ' + withdrawal.get_crypto_type_display() if withdrawal.withdrawal_method == 'crypto' else ''}
+        {'Destination: ' + (withdrawal.wallet_address if withdrawal.withdrawal_method == 'crypto' else withdrawal.bank_name)}
+        Date: {timezone.now().strftime('%B %d, %Y')}
+        
+        Thank you for choosing Elite Wealth Capital!
+        """
+        
+        from django.utils import timezone
+        
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+        )
+        email.attach_alternative(html_content, "text/html")
+        email.send(fail_silently=False)
+        
+        logger.info(f"Withdrawal success email sent to: {user.email}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send withdrawal success email to {user.email}: {str(e)}")
         return False

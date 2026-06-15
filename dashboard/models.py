@@ -350,3 +350,22 @@ class AdminSession(models.Model):
     
     def __str__(self):
         return f"{self.admin_user.email} - {self.login_at}"
+
+class Testimonial(models.Model):
+    """User testimonials and success stories"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='testimonials')
+    name = models.CharField(max_length=255, blank=True)
+    investment_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    investment_duration = models.CharField(max_length=100, blank=True)
+    rating = models.PositiveSmallIntegerField(default=5)
+    content = models.TextField()
+    is_approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Testimonial'
+        verbose_name_plural = 'Testimonials'
+        ordering = ['-created_at']
+        
+    def __str__(self):
+        return f"Testimonial by {self.user.email}"

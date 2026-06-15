@@ -16,20 +16,46 @@ from django.conf import settings
 User = get_user_model()
 
 
-def generate_kyc_verification_token(kyc_id, action):
-    """Generate secure token for KYC verification links"""
-    message = f"{kyc_id}:{action}:{settings.SECRET_KEY}"
-    return hmac.new(
+import time
+
+def generate_kyc_verification_token(kyc_id, action, timestamp=None):
+    """Generate secure token for KYC verification links with timestamp"""
+    if timestamp is None:
+        timestamp = int(time.time())
+    message = f"{kyc_id}:{action}:{timestamp}:{settings.SECRET_KEY}"
+    token = hmac.new(
         settings.SECRET_KEY.encode(),
         message.encode(),
         hashlib.sha256
     ).hexdigest()
+    return f"{timestamp}.{token}"
 
 
-def verify_kyc_token(kyc_id, action, token):
-    """Verify the security token"""
-    expected_token = generate_kyc_verification_token(kyc_id, action)
-    return hmac.compare_digest(token, expected_token)
+def verify_kyc_token(kyc_id, action, token_with_timestamp):
+    """Verify the KYC security token with expiration (24 hours)"""
+    try:
+        if '.' not in token_with_timestamp:
+            return False
+            
+        timestamp_str, token = token_with_timestamp.split('.', 1)
+        timestamp = int(timestamp_str)
+        
+        # Check expiration (24 hours)
+        current_time = int(time.time())
+        if current_time - timestamp > 86400:
+            return False
+            
+        # Verify hash
+        message = f"{kyc_id}:{action}:{timestamp}:{settings.SECRET_KEY}"
+        expected_token = hmac.new(
+            settings.SECRET_KEY.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        return hmac.compare_digest(token, expected_token)
+    except (ValueError, TypeError):
+        return False
 
 
 @csrf_exempt

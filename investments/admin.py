@@ -165,29 +165,12 @@ class DepositAdmin(admin.ModelAdmin):
     @transaction.atomic
     def mark_confirmed(self, request, queryset):
         count = 0
-        from accounts.models import CustomUser
-        for deposit in queryset.filter(status='pending').select_for_update():
-            # Lock the user row to prevent race conditions
-            user = CustomUser.objects.select_for_update().get(pk=deposit.user.pk)
-            user.balance = F('balance') + deposit.amount
-            user.save(update_fields=['balance'])
-            
+        for deposit in queryset.filter(status='pending'):
             deposit.status = 'confirmed'
             deposit.confirmed_by = request.user
             deposit.confirmed_at = timezone.now()
             deposit.save()
             
-            # Refresh user to get actual balance for notification
-            user.refresh_from_db()
-            
-            # Create notification for user
-            from notifications.models import Notification
-            Notification.objects.create(
-                user=user,
-                title='Deposit Confirmed',
-                message=f'Your deposit of ${deposit.amount:,.2f} has been confirmed and credited to your account.',
-                notification_type='deposit'
-            )
             count += 1
         
         self.message_user(request, f'✅ {count} deposit(s) confirmed and users notified!')
@@ -198,15 +181,6 @@ class DepositAdmin(admin.ModelAdmin):
         for deposit in queryset.filter(status='pending'):
             deposit.status = 'rejected'
             deposit.save()
-            
-            # Create notification for user
-            from notifications.models import Notification
-            Notification.objects.create(
-                user=deposit.user,
-                title='Deposit Rejected',
-                message=f'Your deposit of ${deposit.amount:,.2f} was rejected. Please contact support for assistance.',
-                notification_type='deposit'
-            )
             count += 1
         
         self.message_user(request, f'❌ {count} deposit(s) rejected.')
@@ -220,21 +194,8 @@ class DepositAdmin(admin.ModelAdmin):
                 old_deposit = Deposit.objects.get(pk=obj.pk)
                 # If status changed from pending to confirmed
                 if old_deposit.status == 'pending' and obj.status == 'confirmed':
-                    user = obj.user
-                    user.balance += obj.amount
-                    user.save()
-                    
                     obj.confirmed_by = request.user
                     obj.confirmed_at = timezone.now()
-                    
-                    # Create notification
-                    from notifications.models import Notification
-                    Notification.objects.create(
-                        user=user,
-                        title='Deposit Confirmed',
-                        message=f'Your deposit of ${obj.amount:,.2f} has been confirmed!',
-                        notification_type='deposit'
-                    )
             except Deposit.DoesNotExist:
                 pass
         

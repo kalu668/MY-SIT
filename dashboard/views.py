@@ -444,11 +444,11 @@ def testimonials_manage(request):
         testimonial = Testimonial(
             user=user,
             name=request.POST.get('name'),
-            investment_amount=float(request.POST.get('investment_amount', 0)),
+            investment_amount=Decimal(request.POST.get('investment_amount', 0)),
             investment_duration=request.POST.get('investment_duration'),
             rating=int(request.POST.get('rating', 5)),
-            testimonial=request.POST.get('testimonial'),
-            display_publicly=request.POST.get('allow_display') == 'on',
+            content=request.POST.get('testimonial'),
+            is_approved=False, # Wait for admin approval
         )
         testimonial.save()
         messages.success(request, 'Your testimonial has been submitted for review!')

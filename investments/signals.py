@@ -7,8 +7,9 @@ from django.dispatch import receiver
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.utils import timezone
-from .models import Deposit
+from .models import Deposit, Withdrawal
 from notifications.models import Notification
+from accounts.email_notifications import send_withdrawal_completed_email
 import logging
 
 logger = logging.getLogger(__name__)
@@ -675,3 +676,37 @@ def send_deposit_rejected_email(deposit):
         
     except Exception as e:
         logger.error(f"Failed to send deposit rejection email: {str(e)}")
+
+@receiver(pre_save, sender=Withdrawal)
+def track_withdrawal_status_change(sender, instance, **kwargs):
+    """Track old status before save"""
+    if instance.pk:
+        try:
+            instance._old_status = Withdrawal.objects.get(pk=instance.pk).status
+        except Withdrawal.DoesNotExist:
+            instance._old_status = None
+    else:
+        instance._old_status = None
+
+
+@receiver(post_save, sender=Withdrawal)
+def notify_withdrawal_status_change(sender, instance, created, **kwargs):
+    """Send notification when withdrawal status changes"""
+    # Skip if just created
+    if created:
+        return
+    
+    # Check if status changed
+    old_status = getattr(instance, '_old_status', None)
+    if old_status == instance.status:
+        return
+    
+    user = instance.user
+    
+    if instance.status == 'completed':
+        # Send email to user
+        try:
+            send_withdrawal_completed_email(instance)
+            logger.info(f"Withdrawal {instance.id} completed email sent to {user.email}")
+        except Exception as e:
+            logger.error(f"Failed to send withdrawal completion email: {str(e)}")
