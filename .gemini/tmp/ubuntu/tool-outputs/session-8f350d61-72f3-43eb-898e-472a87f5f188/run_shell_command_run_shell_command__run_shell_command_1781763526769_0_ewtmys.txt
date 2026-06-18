@@ -1,0 +1,3 @@
+{
+  "output": "Output: \n\nclass CryptoTicker(models.Model):\nProcess Group PGID: 89557"
+}

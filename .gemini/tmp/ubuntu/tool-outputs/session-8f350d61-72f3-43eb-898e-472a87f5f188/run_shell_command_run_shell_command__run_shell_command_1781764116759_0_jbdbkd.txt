@@ -1,0 +1,3 @@
+{
+  "output": "Output: 7:    path('plans/', views.plans_list, name='plans'),\nProcess Group PGID: 89662"
+}
