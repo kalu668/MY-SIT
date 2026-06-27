@@ -3,5 +3,3 @@
 [user]
 	email = you@example.com
 	name = Your Name
-[gpg]
-	program = gpg
