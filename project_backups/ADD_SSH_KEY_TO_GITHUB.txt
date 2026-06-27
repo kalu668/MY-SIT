@@ -1,0 +1,107 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                    GITHUB SSH KEY - READY TO ADD                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+📋 COPY THIS PUBLIC KEY:
+─────────────────────────────────────────────────────────────────────────
+
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAHAcMfmhqXaRTVEzlGvxn40RehPwxmtIcrzI4B59wA3 support@coachjv.com
+
+─────────────────────────────────────────────────────────────────────────
+
+✅ KEY DETAILS:
+• Type: ED25519 (Most secure and recommended by GitHub)
+• Comment: support@coachjv.com
+• Created: June 5, 2026
+• Location: ~/.ssh/id_ed25519_github
+
+═════════════════════════════════════════════════════════════════════════
+
+📝 STEP-BY-STEP GUIDE TO ADD TO GITHUB:
+
+1️⃣  Go to GitHub SSH Settings:
+   👉 https://github.com/settings/ssh/new
+
+2️⃣  Fill in the form:
+   • Title: Coach JV Server Key
+   • Key type: Authentication Key
+   • Key: [Paste the public key from above]
+
+3️⃣  Click "Add SSH key"
+
+4️⃣  Confirm with your GitHub password if prompted
+
+═════════════════════════════════════════════════════════════════════════
+
+🚀 AFTER ADDING THE KEY, DEPLOY YOUR CODE:
+
+Run these commands on the server:
+
+   cd ~/coach
+   git push -f origin master
+
+This will:
+✅ Delete all existing files in KINGSACCOUNT1/coach-jv
+✅ Upload your complete Coach JV Django application
+✅ Replace the repo with your local version
+
+═════════════════════════════════════════════════════════════════════════
+
+🔧 SSH CONFIGURATION UPDATED:
+
+The SSH config has been automatically updated at: ~/.ssh/config
+
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_github
+    StrictHostKeyChecking no
+
+═════════════════════════════════════════════════════════════════════════
+
+📊 WHAT WILL BE DEPLOYED:
+
+✅ 72 files ready to push
+✅ 17,662+ lines of code
+✅ Complete Django web application
+✅ Email: support@coachjv.com
+✅ Domain: coachjv.com
+
+Files include:
+• Django project (coach/)
+• Core app (core/)
+• Templates (templates/)
+• Static files (static/)
+• Documentation
+• Configuration files
+
+═════════════════════════════════════════════════════════════════════════
+
+⚠️  IMPORTANT NOTES:
+
+1. The push will use -f (force) flag to overwrite existing repo content
+2. This will delete ALL files currently in KINGSACCOUNT1/coach-jv
+3. Your local coach folder will become the new repo content
+4. Make sure you've backed up anything important from the GitHub repo
+
+═════════════════════════════════════════════════════════════════════════
+
+🆘 TROUBLESHOOTING:
+
+If you get "Permission denied (publickey)":
+• Make sure you added the SSH key to your GitHub account
+• Wait 1-2 minutes after adding the key
+• Try: ssh -T git@github.com (should see "Hi KINGSACCOUNT1!")
+
+If you get "Repository not found":
+• Verify the repo exists: https://github.com/KINGSACCOUNT1/coach-jv
+• Check you have write access to the repository
+
+═════════════════════════════════════════════════════════════════════════
+
+📞 SUPPORT:
+• Email: support@coachjv.com
+• Repository: https://github.com/KINGSACCOUNT1/coach-jv
+
+═════════════════════════════════════════════════════════════════════════
+Generated: June 5, 2026 21:25 UTC

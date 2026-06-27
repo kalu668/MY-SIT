@@ -1,0 +1,63 @@
+# COACH & XCOACH REPOSITORY DETAILS
+
+## Location
+- coach: /home/ubuntu/coach
+- xcoach: /home/ubuntu/xcoach (copy)
+
+## Repository Info
+- Source: my-impersonal-enterprise.ghe.com/78eqoaoi_admin/coach
+- Size: 312KB
+- Total Files: 38 files
+- Type: Django Web Application
+
+## Project Structure
+coach/
+├── .git/                   # Git repository
+├── coach/                  # Main Django project config
+├── core/                   # Core Django app
+│   ├── management/         # Management commands
+│   └── migrations/         # Database migrations
+├── static/                 # Static assets
+│   ├── css/
+│   ├── images/
+│   ├── js/
+│   └── videos/
+├── templates/              # HTML templates
+├── manage.py               # Django management script
+├── requirements.txt        # Python dependencies
+├── Procfile                # Deployment config
+└── Documentation files
+
+## Key Features
+- Django 4.2+ framework
+- Django REST Framework
+- PostgreSQL database (psycopg2)
+- Cloudinary media storage
+- JWT Authentication
+- Admin interface (Jazzmin)
+- WhiteNoise static file serving
+- Gunicorn/Uvicorn WSGI servers
+
+## Dependencies (requirements.txt)
+- Django>=4.2,<5.0
+- djangorestframework>=3.14.0
+- psycopg2-binary>=2.9.0
+- django-jazzmin>=3.0,<4.0
+- gunicorn>=21.0.0
+- cloudinary>=1.36,<2.0
+- pillow>=10.0.0
+- pytest>=7.4.0 (testing)
+- black>=23.0.0 (formatting)
+- flake8>=6.0.0 (linting)
+
+## Git Configuration
+- Remote: git@my-impersonal-enterprise.ghe.com:78eqoaoi_admin/coach.git
+- SSH Key: ~/.ssh/github_enterprise_key
+
+## Next Steps
+1. Create virtual environment: python3 -m venv venv
+2. Install dependencies: pip install -r requirements.txt
+3. Configure .env file
+4. Run migrations: python manage.py migrate
+5. Create superuser: python manage.py createsuperuser
+6. Start server: python manage.py runserver

@@ -1,0 +1,3 @@
+{
+  "output": "Output:     ]\n    \n    KYC_STATUS_CHOICES = [\n        ('pending', 'Pending'),\n        ('submitted', 'Submitted'),\n        ('verified', 'Verified'),\n        ('rejected', 'Rejected'),\n    ]\n    \n    CARD_STATUS_CHOICES = [\nProcess Group PGID: 89748"
+}

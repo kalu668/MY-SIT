@@ -1,0 +1,3 @@
+{
+  "output": "No matches found for pattern \"invest\" in the workspace directory (filter: \"my site/templates/**/*.html\")."
+}

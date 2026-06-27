@@ -1,0 +1,5 @@
+[core]
+	sshCommand = ssh -i /home/ubuntu/.ssh/id_ed25519_github -F /home/ubuntu/.ssh/config
+[user]
+	email = you@example.com
+	name = Your Name

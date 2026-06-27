@@ -1,0 +1,3 @@
+{
+  "output": "No matches found for pattern \"Invest Now\" in the workspace directory (filter: \"**/*.{html,py,md,js}\")."
+}

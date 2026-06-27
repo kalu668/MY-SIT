@@ -1,0 +1,60 @@
+        null=True,
+        blank=True,
+        related_name='processed_upgrades'
+    )
+    processed_at = models.DateTimeField(null=True, blank=True)
+    admin_note = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Account Upgrade'
+        verbose_name_plural = 'Account Upgrades'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.requested_tier} - {self.status}"
+    
+    @staticmethod
+    def get_tier_benefits(tier):
+        """Get benefits for each tier"""
+        benefits = {
+            'intermediate': {
+                'roi_boost': '5%',
+                'support': 'Priority Support',
+                'insights': 'Weekly Market Insights',
+            },
+            'advanced': {
+                'roi_boost': '10%',
+                'support': '24/7 Support',
+                'insights': 'Daily Market Insights',
+                'fees': 'Lower Transaction Fees',
+            },
+            'vip': {
+                'roi_boost': '15%',
+                'support': 'Personal Account Manager',
+                'insights': 'Exclusive Investment Plans',
+                'fees': 'Zero Transaction Fees',
+                'events': 'VIP Events Access',
+            },
+        }
+        return benefits.get(tier, {})
+
+
+class CryptoTicker(models.Model):
+    symbol = models.CharField(max_length=20, unique=True, help_text="Trading symbol, e.g. BTC, ETH")
+    name = models.CharField(max_length=100, help_text="Display name, e.g. Bitcoin, Ethereum")
+    coingecko_id = models.CharField(max_length=100, help_text="CoinGecko coin ID (e.g. bitcoin, ethereum)")
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Crypto Ticker'
+        verbose_name_plural = 'Crypto Tickers'
+        ordering = ['display_order', 'symbol']
+    
+    def __str__(self):
+        return f"{self.symbol} ({self.name})"

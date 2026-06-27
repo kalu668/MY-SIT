@@ -62,21 +62,3 @@ id_ed25519_agwu662
 id_ed25519_agwu662.pub
 .cache/
 .local/bin/
-
-# System & Shell
-.bash_history
-.bash_logout
-.bashrc
-.profile
-.lesshst
-.gitconfig
-.gitconfig_local
-.local/
-.npm/
-.gnupg/
-snap/
-
-# Backup & non-project files
-backups/
-project_backups/
-my\ site

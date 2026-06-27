@@ -1,0 +1,100 @@
+        
+        # Set due date when disbursed
+        if self.status == 'disbursed' and not self.due_date:
+            self.due_date = timezone.now() + timezone.timedelta(days=self.duration_days)
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def remaining_balance(self):
+        """Remaining amount to be repaid"""
+        return self.total_repayment - self.amount_repaid
+    
+    @property
+    def is_fully_repaid(self):
+        """Check if loan is fully repaid"""
+        return self.amount_repaid >= self.total_repayment
+    
+    def is_overdue(self):
+        """Check if loan is overdue"""
+        if self.due_date and self.status in ['disbursed', 'repaying']:
+            return timezone.now() > self.due_date
+        return False
+    
+    @property
+    def days_until_due(self):
+        """Days until loan is due"""
+        if self.due_date and self.status in ['disbursed', 'repaying']:
+            remaining = (self.due_date - timezone.now()).days
+            return max(0, remaining)
+        return 0
+    
+    def mark_defaulted(self):
+        """Mark loan as defaulted"""
+        self.status = 'defaulted'
+        self.save(update_fields=['status'])
+
+
+class LoanRepayment(models.Model):
+    """Loan repayment transactions"""
+    
+    loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='repayments')
+    amount = models.DecimalField(max_digits=15, decimal_places=2, validators=[MinValueValidator(0.01)])
+    payment_method = models.CharField(max_length=50, default='balance')
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Loan Repayment'
+        verbose_name_plural = 'Loan Repayments'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Loan #{self.loan.id} - ${self.amount} repayment"
+
+
+class VirtualCard(models.Model):
+    """Virtual card applications"""
+    
+    CARD_TYPE_CHOICES = [
+        ('standard', 'Standard'),
+        ('premium', 'Premium'),
+        ('platinum', 'Platinum'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('active', 'Active'),
+        ('frozen', 'Frozen'),
+        ('expired', 'Expired'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='virtual_card_model')
+    
+    # Card details
+    card_number = models.CharField(max_length=16, unique=True)
+    cvv = models.CharField(max_length=3)
+    expiry_month = models.IntegerField(default=12)
+    expiry_year = models.IntegerField(default=2028)
+    card_holder_name = models.CharField(max_length=255)
+    billing_address = models.TextField()
+    
+    # Card type and limits
+    card_type = models.CharField(max_length=20, choices=CARD_TYPE_CHOICES, default='standard')
+    balance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    daily_limit = models.DecimalField(max_digits=10, decimal_places=2, default=1000)
+    monthly_limit = models.DecimalField(max_digits=10, decimal_places=2, default=10000)
+    
+    # Features
+    is_online_enabled = models.BooleanField(default=True)
+    is_international_enabled = models.BooleanField(default=False)
+    
+    # Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Virtual Card'

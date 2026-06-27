@@ -1,0 +1,3 @@
+{
+  "output": "No matches found for pattern \"user-avatar\" in the workspace directory (filter: \"templates/dashboard/base_dashboard.html\")."
+}

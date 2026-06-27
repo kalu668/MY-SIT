@@ -1,0 +1,100 @@
+        ('BTC', 'Bitcoin'),
+        ('ETH', 'Ethereum'),
+        ('USDT', 'Tether (USDT)'),
+        ('USDC', 'USD Coin'),
+        ('LTC', 'Litecoin'),
+        ('BNB', 'Binance Coin'),
+        ('BANK', 'Bank Transfer'),
+    ]
+    
+    crypto_type = models.CharField(max_length=10, choices=CRYPTO_CHOICES, unique=True)
+    address = models.CharField(max_length=255)
+    label = models.CharField(max_length=100, blank=True)
+    network = models.CharField(max_length=50, blank=True, help_text='e.g., ERC-20, TRC-20, BEP-20')
+    qr_code = models.ImageField(upload_to='wallets/qr/', blank=True, null=True)
+    qr_code_image = models.ImageField(upload_to='wallets/qr/', blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Wallet Address'
+        verbose_name_plural = 'Wallet Addresses'
+        ordering = ['crypto_type']
+    
+    def __str__(self):
+        return f"{self.crypto_type} - {self.address[:20]}..."
+
+
+class Loan(models.Model):
+    """User loan applications"""
+    
+    DURATION_CHOICES = [
+        (30, '30 Days'),
+        (60, '60 Days'),
+        (90, '90 Days'),
+        (180, '180 Days'),
+        (365, '365 Days'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('disbursed', 'Disbursed'),
+        ('repaying', 'Repaying'),
+        ('completed', 'Completed'),
+        ('defaulted', 'Defaulted'),
+    ]
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='loans')
+    amount = models.DecimalField(max_digits=15, decimal_places=2, validators=[MinValueValidator(100)])
+    interest_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        help_text='Monthly interest rate percentage'
+    )
+    duration_days = models.IntegerField(choices=DURATION_CHOICES)
+    
+    # Calculated amounts
+    total_repayment = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    amount_repaid = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    
+    # Loan details
+    purpose = models.TextField()
+    collateral_description = models.TextField(blank=True)
+    
+    # Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_loans'
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    disbursed_at = models.DateTimeField(null=True, blank=True)
+    due_date = models.DateTimeField(null=True, blank=True)
+    admin_note = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Loan'
+        verbose_name_plural = 'Loans'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.email} - ${self.amount} - {self.status}"
+    
+    def save(self, *args, **kwargs):
+        # Calculate total repayment if not set
+        if not self.total_repayment:
+            months = self.duration_days / 30
+            interest = self.amount * (self.interest_rate / 100) * Decimal(months)
+            self.total_repayment = self.amount + interest

@@ -1,0 +1,100 @@
+        verbose_name_plural = 'Virtual Cards'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.masked_number}"
+    
+    def save(self, *args, **kwargs):
+        # Generate card number if not exists (Visa format starting with 4)
+        if not self.card_number:
+            self.card_number = '4' + ''.join([str(random.randint(0, 9)) for _ in range(15)])
+        
+        # Generate CVV if not exists
+        if not self.cvv:
+            self.cvv = ''.join([str(random.randint(0, 9)) for _ in range(3)])
+        
+        # Auto-fill card holder name from user if not provided
+        if not self.card_holder_name:
+            self.card_holder_name = self.user.full_name
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def masked_number(self):
+        """Return masked card number"""
+        if self.card_number:
+            return f"**** **** **** {self.card_number[-4:]}"
+        return ""
+
+
+class Coupon(models.Model):
+    """Promotional coupons"""
+    
+    DISCOUNT_TYPE_CHOICES = [
+        ('percentage', 'Percentage'),
+        ('fixed', 'Fixed Amount'),
+        ('bonus', 'Bonus'),
+    ]
+    
+    code = models.CharField(max_length=50, unique=True)
+    discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES)
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2)
+    max_discount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    
+    # Restrictions
+    min_deposit = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    uses_limit = models.IntegerField(default=0, help_text='0 = unlimited')
+    uses_count = models.IntegerField(default=0)
+    uses_per_user = models.IntegerField(default=1)
+    
+    # Validity
+    is_active = models.BooleanField(default=True)
+    starts_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Coupon'
+        verbose_name_plural = 'Coupons'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.code} - {self.discount_value}{'%' if self.discount_type == 'percentage' else '$'}"
+    
+    @property
+    def is_valid(self):
+        """Check if coupon is valid"""
+        if not self.is_active:
+            return False
+        
+        # Check usage limit
+        if self.uses_limit > 0 and self.uses_count >= self.uses_limit:
+            return False
+        
+        # Check date range
+        now = timezone.now()
+        if self.starts_at and now < self.starts_at:
+            return False
+        if self.expires_at and now > self.expires_at:
+            return False
+        
+        return True
+
+
+class CouponUsage(models.Model):
+    """Track coupon usage"""
+    
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE, related_name='usages')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='coupon_usages')
+    deposit = models.ForeignKey(Deposit, on_delete=models.SET_NULL, null=True, blank=True)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    used_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Coupon Usage'
+        verbose_name_plural = 'Coupon Usages'
+        ordering = ['-used_at']
+    
+    def __str__(self):

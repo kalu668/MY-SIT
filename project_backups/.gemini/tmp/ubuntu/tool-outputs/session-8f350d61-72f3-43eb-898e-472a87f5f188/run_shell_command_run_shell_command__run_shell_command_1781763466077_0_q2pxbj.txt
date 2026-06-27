@@ -1,0 +1,3 @@
+{
+  "output": "Output:     \n    def __str__(self):\n        return f\"{self.user.email} - {self.requested_tier} - {self.status}\"\n    \n    @staticmethod\nProcess Group PGID: 89525"
+}
