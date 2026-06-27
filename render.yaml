@@ -3,7 +3,7 @@ services:
   - type: web
     name: elite-wealth-capital
     runtime: docker
-    plan: standard
+    plan: starter
     dockerfilePath: ./Dockerfile
     dockerContext: .
     envVars:
@@ -95,7 +95,6 @@ databases:
     databaseName: elite_wealth_db
     user: elite_wealth_user
 
-# Redis for Celery (Paid plan required)
-redis:
-  - name: elite-wealth-redis
-    plan: standard
+# Redis for Celery
+# Note: Free tier doesn't include Redis - you'll need to use an external Redis provider
+# or upgrade to a paid plan. Alternatively, use Upstash Redis (free tier available)
