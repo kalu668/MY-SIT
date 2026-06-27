@@ -13,8 +13,16 @@ services:
       - key: DEBUG
         value: False
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: elite-wealth-db
+          property: connectionString
       - key: ALLOWED_HOSTS
         value: "*"
       - key: EMAIL_BACKEND
         value: django.core.mail.backends.console.EmailBackend
+
+databases:
+  - name: elite-wealth-db
+    plan: free
+    databaseName: elite_wealth_db
+    user: elite_wealth_user
