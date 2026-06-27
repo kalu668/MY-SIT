@@ -17,66 +17,12 @@ services:
           name: elite-wealth-db
           property: connectionString
       - key: ALLOWED_HOSTS
-        sync: false
+        value: "*"
       - key: EMAIL_BACKEND
-        value: django.core.mail.backends.smtp.EmailBackend
-      - key: EMAIL_HOST
-        sync: false
-      - key: EMAIL_PORT
-        value: 587
-      - key: EMAIL_USE_TLS
-        value: True
-      - key: EMAIL_HOST_USER
-        sync: false
-      - key: EMAIL_HOST_PASSWORD
-        sync: false
-      - key: DEFAULT_FROM_EMAIL
-        sync: false
-      - key: ADMIN_EMAIL
-        sync: false
-
-  - type: worker
-    name: elite-wealth-worker
-    runtime: python
-    plan: free
-    buildCommand: ./build.sh
-    startCommand: celery -A elite_wealth_capital worker --loglevel=info
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
-      - key: SECRET_KEY
-        sync: false
-      - key: DEBUG
-        value: False
-      - key: DATABASE_URL
-        fromDatabase:
-          name: elite-wealth-db
-          property: connectionString
-
-  - type: worker
-    name: elite-wealth-beat
-    runtime: python
-    plan: free
-    buildCommand: ./build.sh
-    startCommand: celery -A elite_wealth_capital beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
-      - key: SECRET_KEY
-        sync: false
-      - key: DEBUG
-        value: False
-      - key: DATABASE_URL
-        fromDatabase:
-          name: elite-wealth-db
-          property: connectionString
+        value: django.core.mail.backends.console.EmailBackend
 
 databases:
   - name: elite-wealth-db
     plan: free
     databaseName: elite_wealth_db
     user: elite_wealth_user
-
-redis:
-  - name: elite-wealth-redis
-    plan: standard
